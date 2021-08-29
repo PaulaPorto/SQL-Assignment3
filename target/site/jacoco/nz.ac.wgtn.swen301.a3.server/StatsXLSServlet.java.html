@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StatsXLSServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Simple Webapp(s)</a> &gt; <a href="index.source.html" class="el_package">nz.ac.wgtn.swen301.a3.server</a> &gt; <span class="el_source">StatsXLSServlet.java</span></div><h1>StatsXLSServlet.java</h1><pre class="source lang-java linenums">package nz.ac.wgtn.swen301.a3.server;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.*;
+
+<span class="fc" id="L17">public class StatsXLSServlet extends HttpServlet {</span>
+<span class="fc" id="L18">    public Map&lt;String, List&lt;Integer&gt;&gt; logs = new HashMap();</span>
+
+    /**
+     * Prints output in Excel.
+     *
+     * @param request
+     * @param response
+     * @throws ServletException
+     * @throws IOException
+     */
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+<span class="fc" id="L30">        getOutput();</span>
+<span class="fc" id="L31">        response.setHeader(&quot;Content-Disposition&quot;, &quot;attachment; filename=stats.xlsx&quot;);</span>
+<span class="fc" id="L32">        response.setContentType(&quot;application/vnd.ms-excel&quot;);</span>
+<span class="fc" id="L33">        OutputStream out = response.getOutputStream();</span>
+<span class="fc" id="L34">        XSSFWorkbook workbook = new XSSFWorkbook();</span>
+<span class="fc" id="L35">        XSSFSheet workBook = workbook.createSheet(&quot;stats&quot;);</span>
+<span class="fc" id="L36">        String [] headers = {</span>
+                &quot;logger&quot;,
+                &quot;ALL&quot;,
+                &quot;TRACE&quot;,
+                &quot;DEBUG&quot;,
+                &quot;INFO&quot;,
+                &quot;WARN&quot;,
+                &quot;ERROR&quot;,
+                &quot;FATAL&quot;,
+                &quot;OFF&quot;
+        };
+<span class="fc" id="L47">        int r = 0;</span>
+<span class="fc" id="L48">        int c = 0;</span>
+<span class="fc" id="L49">        Row rows = workBook.createRow(r++);</span>
+        Cell cells;
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        for (int i = 0; i &lt; headers.length; i++){</span>
+<span class="fc" id="L52">            cells = rows.createCell(c++);</span>
+<span class="fc" id="L53">            cells.setCellValue(headers[i]);</span>
+        }
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        for (String l : logs.keySet()){</span>
+<span class="fc" id="L56">            c = 0;</span>
+<span class="fc" id="L57">            rows = workBook.createRow(r++);</span>
+<span class="fc" id="L58">            cells = rows.createCell(c++);</span>
+<span class="fc" id="L59">            cells.setCellValue(l);</span>
+<span class="fc" id="L60">            List&lt;Integer&gt; num = logs.get(l);</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">            for (int k = 0; k &lt; num.size(); k++){</span>
+<span class="fc" id="L62">                cells = rows.createCell(c++);</span>
+<span class="fc" id="L63">                cells.setCellValue(num.get(k));</span>
+            }
+<span class="fc" id="L65">        }</span>
+<span class="fc" id="L66">        workbook.write(out);</span>
+<span class="fc" id="L67">    }</span>
+    /**
+     * Gets the needed values for the table being printed for XLS.
+     */
+    public void getOutput(){
+<span class="fc" id="L72">        List&lt;String&gt; logName = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        for (JsonNode log : Persistency.DB){</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">            if (!logName.contains(log.get(&quot;logger&quot;).asText())){</span>
+<span class="fc" id="L75">                logName.add(log.get(&quot;logger&quot;).asText());</span>
+            }
+<span class="fc" id="L77">        }</span>
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        for (String name : logName){</span>
+<span class="fc" id="L79">            List&lt;Integer&gt; intValues = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L80">            int all = 0;</span>
+<span class="fc" id="L81">            int trace = 0;</span>
+<span class="fc" id="L82">            int debug = 0;</span>
+<span class="fc" id="L83">            int info = 0;</span>
+<span class="fc" id="L84">            int warn = 0;</span>
+<span class="fc" id="L85">            int error = 0;</span>
+<span class="fc" id="L86">            int fatal = 0;</span>
+<span class="fc" id="L87">            int off = 0;</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">            for (JsonNode l : Persistency.DB){</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">                if (l.get(&quot;logger&quot;).asText().equals(name)){</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;ALL&quot;)){</span>
+<span class="fc" id="L91">                        all++;</span>
+                    }
+<span class="fc bfc" id="L93" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;TRACE&quot;)){</span>
+<span class="fc" id="L94">                        trace++;</span>
+                    }
+<span class="fc bfc" id="L96" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;DEBUG&quot;)){</span>
+<span class="fc" id="L97">                        debug++;</span>
+                    }
+<span class="fc bfc" id="L99" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;INFO&quot;)){</span>
+<span class="fc" id="L100">                        info++;</span>
+                    }
+<span class="fc bfc" id="L102" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;WARN&quot;)){</span>
+<span class="fc" id="L103">                        warn++;</span>
+                    }
+<span class="fc bfc" id="L105" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;ERROR&quot;)){</span>
+<span class="fc" id="L106">                        error++;</span>
+                    }
+<span class="fc bfc" id="L108" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;FATAL&quot;)){</span>
+<span class="fc" id="L109">                        fatal++;</span>
+                    }
+<span class="fc bfc" id="L111" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;OFF&quot;)){</span>
+<span class="fc" id="L112">                        off++;</span>
+                    }
+                }
+<span class="fc" id="L115">            }</span>
+<span class="fc" id="L116">            intValues.add(all);</span>
+<span class="fc" id="L117">            intValues.add(trace);</span>
+<span class="fc" id="L118">            intValues.add(debug);</span>
+<span class="fc" id="L119">            intValues.add(info);</span>
+<span class="fc" id="L120">            intValues.add(warn);</span>
+<span class="fc" id="L121">            intValues.add(error);</span>
+<span class="fc" id="L122">            intValues.add(fatal);</span>
+<span class="fc" id="L123">            intValues.add(off);</span>
+<span class="fc" id="L124">            logs.put(name, intValues);</span>
+<span class="fc" id="L125">        }</span>
+<span class="fc" id="L126">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

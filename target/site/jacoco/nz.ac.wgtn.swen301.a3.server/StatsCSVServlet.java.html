@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>StatsCSVServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Simple Webapp(s)</a> &gt; <a href="index.source.html" class="el_package">nz.ac.wgtn.swen301.a3.server</a> &gt; <span class="el_source">StatsCSVServlet.java</span></div><h1>StatsCSVServlet.java</h1><pre class="source lang-java linenums">package nz.ac.wgtn.swen301.a3.server;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.*;
+
+<span class="fc" id="L12">public class StatsCSVServlet extends HttpServlet {</span>
+<span class="fc" id="L13">    public Map&lt;String, List&lt;Integer&gt;&gt; logs = new HashMap();</span>
+
+    /**
+     * Gets the output for CSV.
+     * Prints table of logs.
+     *
+     * @param request
+     * @param response
+     * @throws ServletException
+     * @throws IOException
+     */
+    @Override
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+<span class="fc" id="L27">        getOutput();</span>
+<span class="fc" id="L28">        response.setContentType(&quot;text/csv&quot;);</span>
+<span class="fc" id="L29">        PrintWriter writer = response.getWriter();</span>
+<span class="fc" id="L30">        String[] levels = {&quot;logger\t&quot;, &quot;ALL\t&quot;, &quot;TRACE\t&quot;, &quot;DEBUG\t&quot;, &quot;INFO\t&quot;,</span>
+                &quot;WARN\t&quot;, &quot;ERROR\t&quot;, &quot;FATAL\t&quot;, &quot;OFF\t&quot;,};
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        for (String lev : levels){</span>
+<span class="fc" id="L33">            writer.print(lev);</span>
+        }
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        for (String l : logs.keySet()){</span>
+<span class="fc" id="L36">            writer.print(&quot;\n&quot;+ l +&quot;\t&quot;);</span>
+<span class="fc" id="L37">            List&lt;Integer&gt; num = logs.get(l);</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">            for(Integer lev : num){</span>
+<span class="fc" id="L39">                writer.print(lev + &quot;\t&quot;);</span>
+<span class="fc" id="L40">            }</span>
+<span class="fc" id="L41">        }</span>
+<span class="fc" id="L42">        writer.close();</span>
+<span class="fc" id="L43">    }</span>
+
+    /**
+     * Gets the needed values for the table being printed for CSV.
+     */
+    public void getOutput(){
+<span class="fc" id="L49">        List&lt;String&gt; logName = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        for (JsonNode log : Persistency.DB){</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">            if (!logName.contains(log.get(&quot;logger&quot;).asText())){</span>
+<span class="fc" id="L52">                logName.add(log.get(&quot;logger&quot;).asText());</span>
+            }
+<span class="fc" id="L54">        }</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">        for (String name : logName){</span>
+<span class="fc" id="L56">            List&lt;Integer&gt; intValues = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L57">            int all = 0;</span>
+<span class="fc" id="L58">            int trace = 0;</span>
+<span class="fc" id="L59">            int debug = 0;</span>
+<span class="fc" id="L60">            int info = 0;</span>
+<span class="fc" id="L61">            int warn = 0;</span>
+<span class="fc" id="L62">            int error = 0;</span>
+<span class="fc" id="L63">            int fatal = 0;</span>
+<span class="fc" id="L64">            int off = 0;</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">            for (JsonNode l : Persistency.DB){</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">                if (l.get(&quot;logger&quot;).asText().equals(name)){</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;ALL&quot;)){</span>
+<span class="fc" id="L68">                        all++;</span>
+                    }
+<span class="fc bfc" id="L70" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;TRACE&quot;)){</span>
+<span class="fc" id="L71">                       trace++;</span>
+                    }
+<span class="fc bfc" id="L73" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;DEBUG&quot;)){</span>
+<span class="fc" id="L74">                       debug++;</span>
+                    }
+<span class="fc bfc" id="L76" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;INFO&quot;)){</span>
+<span class="fc" id="L77">                        info++;</span>
+                    }
+<span class="fc bfc" id="L79" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;WARN&quot;)){</span>
+<span class="fc" id="L80">                        warn++;</span>
+                    }
+<span class="fc bfc" id="L82" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;ERROR&quot;)){</span>
+<span class="fc" id="L83">                        error++;</span>
+                    }
+<span class="fc bfc" id="L85" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;FATAL&quot;)){</span>
+<span class="fc" id="L86">                        fatal++;</span>
+                    }
+<span class="fc bfc" id="L88" title="All 2 branches covered.">                    if (l.get(&quot;level&quot;).asText().equals(&quot;OFF&quot;)){</span>
+<span class="fc" id="L89">                        off++;</span>
+                    }
+                }
+<span class="fc" id="L92">            }</span>
+<span class="fc" id="L93">            intValues.add(all);</span>
+<span class="fc" id="L94">            intValues.add(trace);</span>
+<span class="fc" id="L95">            intValues.add(debug);</span>
+<span class="fc" id="L96">            intValues.add(info);</span>
+<span class="fc" id="L97">            intValues.add(warn);</span>
+<span class="fc" id="L98">            intValues.add(error);</span>
+<span class="fc" id="L99">            intValues.add(fatal);</span>
+<span class="fc" id="L100">            intValues.add(off);</span>
+<span class="fc" id="L101">            logs.put(name, intValues);</span>
+<span class="fc" id="L102">        }</span>
+<span class="fc" id="L103">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

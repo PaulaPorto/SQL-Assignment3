@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LogsServlet.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">Simple Webapp(s)</a> &gt; <a href="index.source.html" class="el_package">nz.ac.wgtn.swen301.a3.server</a> &gt; <span class="el_source">LogsServlet.java</span></div><h1>LogsServlet.java</h1><pre class="source lang-java linenums">package nz.ac.wgtn.swen301.a3.server;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+<span class="fc" id="L17">public class LogsServlet extends HttpServlet {</span>
+    /**
+     * Sorted timestamp list.
+     */
+<span class="fc" id="L21">    public List&lt;JsonNode&gt; sorted = new ArrayList&lt;&gt;();</span>
+
+    /**
+     * Hashmap containing all levels and their priority value accordingly.
+     */
+<span class="fc" id="L26">    public HashMap&lt;String, Integer&gt; levels = new HashMap&lt;&gt;(){{</span>
+<span class="fc" id="L27">        put(&quot;OFF&quot;, 1);</span>
+<span class="fc" id="L28">        put(&quot;FATAL&quot;, 2);</span>
+<span class="fc" id="L29">        put(&quot;ERROR&quot;, 3);</span>
+<span class="fc" id="L30">        put(&quot;WARN&quot;, 4);</span>
+<span class="fc" id="L31">        put(&quot;INFO&quot;, 5);</span>
+<span class="fc" id="L32">        put(&quot;DEBUG&quot;, 6);</span>
+<span class="fc" id="L33">        put(&quot;TRACE&quot;, 7);</span>
+<span class="fc" id="L34">        put(&quot;ALL&quot;, 8);</span>
+<span class="fc" id="L35">    }};</span>
+
+    /**
+     * Gets the events from DB and prints them out in an array (JSON format).
+     *
+     * @param request
+     * @param response
+     * @throws ServletException
+     * @throws IOException
+     */
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+<span class="fc" id="L47">        String lim = request.getParameter(&quot;limit&quot;);</span>
+        int num;
+<span class="fc" id="L49">        String lev = request.getParameter(&quot;level&quot;);</span>
+<span class="fc" id="L50">        String error = &quot;Input parameter error (not valid)&quot;;</span>
+<span class="fc" id="L51">        response.setContentType(&quot;application/json&quot;);</span>
+<span class="fc" id="L52">        PrintWriter out = response.getWriter();</span>
+<span class="fc" id="L53">        ObjectMapper mapper = new ObjectMapper();</span>
+<span class="fc" id="L54">        ArrayNode arrayNode = mapper.createArrayNode();</span>
+
+        //Checks if level is valid
+<span class="pc bpc" id="L57" title="1 of 4 branches missed.">        if(lim != null &amp;&amp; lev != null) {</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">            if (!levels.keySet().contains(lev)) {</span>
+<span class="fc" id="L59">                response.sendError(HttpServletResponse.SC_BAD_REQUEST, error);</span>
+<span class="fc" id="L60">                return;</span>
+            }
+            //Turn lim into an int
+            try{
+<span class="fc" id="L64">                num = Integer.parseInt(lim);</span>
+<span class="fc" id="L65">            }catch (NumberFormatException e){</span>
+<span class="fc" id="L66">                response.sendError(HttpServletResponse.SC_BAD_REQUEST, error);</span>
+<span class="fc" id="L67">                return;</span>
+<span class="fc" id="L68">            }</span>
+            //Checks if num is valid
+<span class="pc bpc" id="L70" title="1 of 4 branches missed.">            if (!(num &gt;= 0 &amp;&amp; num &lt; Integer.MAX_VALUE)) {</span>
+<span class="fc" id="L71">                response.sendError(HttpServletResponse.SC_BAD_REQUEST, error);</span>
+<span class="fc" id="L72">                return;</span>
+            }
+<span class="fc" id="L74">            List&lt;JsonNode&gt; jn = new ArrayList&lt;&gt;();</span>
+            //Output the Json objects
+<span class="fc bfc" id="L76" title="All 2 branches covered.">            for (int i = 0; i &lt; Persistency.DB.size(); i++) {</span>
+<span class="fc" id="L77">                JsonNode n = Persistency.DB.get(i);</span>
+<span class="fc" id="L78">                String l = (n.get(&quot;level&quot;).textValue());</span>
+<span class="fc bfc" id="L79" title="All 2 branches covered.">                if (levels.get(l) &lt;= levels.get(lev)) {</span>
+                    //arrayNode.add(n);
+<span class="fc" id="L81">                    jn.add(n);</span>
+                }
+            }
+<span class="fc bfc" id="L84" title="All 2 branches covered.">            if (!Persistency.DB.isEmpty()){</span>
+<span class="fc" id="L85">                List&lt;JsonNode&gt; sorted = findBestTime(jn);</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">                if (sorted.size() &lt; num){</span>
+<span class="fc" id="L87">                    num = sorted.size();</span>
+                }
+<span class="fc bfc" id="L89" title="All 2 branches covered.">                for (int j = 0; j &lt; num; j++){</span>
+<span class="fc" id="L90">                    arrayNode.add(sorted.get(0));</span>
+<span class="fc" id="L91">                    sorted.remove(0);</span>
+                }
+            }
+<span class="fc" id="L94">            String format = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(arrayNode);</span>
+<span class="fc" id="L95">            out.print(format);</span>
+<span class="fc" id="L96">            response.setStatus(HttpServletResponse.SC_OK);</span>
+<span class="fc" id="L97">            out.close();</span>
+<span class="fc" id="L98">            return;</span>
+        }
+<span class="fc" id="L100">        response.sendError(HttpServletResponse.SC_BAD_REQUEST, error);</span>
+<span class="fc" id="L101">    }</span>
+
+    public List&lt;JsonNode&gt; findBestTime(List&lt;JsonNode&gt; jn) {
+<span class="fc" id="L104">        List&lt;JsonNode&gt; unsorted = jn;</span>
+<span class="fc" id="L105">        JsonNode bestTime = null;</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        for (int j = 0; j &lt; unsorted.size(); j++) {</span>
+<span class="fc" id="L107">            JsonNode nodeJ = unsorted.get(j);</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">            if (bestTime != null) {</span>
+<span class="fc" id="L109">                String tstmp = bestTime.get(&quot;timestamp&quot;).asText(); //dd-mm-yyyy hh:mm:ss</span>
+<span class="fc" id="L110">                String[] stamp = tstmp.split(&quot; &quot;); //0 | dd-mm-yyyy 1| hh:mm:ss</span>
+<span class="fc" id="L111">                String[] date = stamp[0].split(&quot;-&quot;); //0| dd 1|mm 2|yyyy</span>
+<span class="fc" id="L112">                String[] time = stamp[1].split(&quot;:&quot;); //0|hh 1|mm 2|ss</span>
+<span class="fc" id="L113">                int year = Integer.parseInt(date[2]);</span>
+<span class="fc" id="L114">                int month = Integer.parseInt(date[1]);</span>
+<span class="fc" id="L115">                int day = Integer.parseInt(date[0]);</span>
+<span class="fc" id="L116">                int hour = Integer.parseInt(time[0]);</span>
+<span class="fc" id="L117">                int minute = Integer.parseInt(time[1]);</span>
+<span class="fc" id="L118">                int second = Integer.parseInt(time[2]);</span>
+<span class="fc" id="L119">                String tstmp2 = nodeJ.get(&quot;timestamp&quot;).asText(); //dd-mm-yyyy hh:mm:ss</span>
+<span class="fc" id="L120">                String[] stamp2 = tstmp2.split(&quot; &quot;); //0 | dd-mm-yyyy 1| hh:mm:ss</span>
+<span class="fc" id="L121">                String[] date2 = stamp2[0].split(&quot;-&quot;); //0| dd 1|mm 2|yyyy</span>
+<span class="fc" id="L122">                String[] time2 = stamp2[1].split(&quot;:&quot;); //0|hh 1|mm 2|ss</span>
+<span class="fc" id="L123">                int year2 = Integer.parseInt(date2[2]);</span>
+<span class="fc" id="L124">                int month2 = Integer.parseInt(date2[1]);</span>
+<span class="fc" id="L125">                int day2 = Integer.parseInt(date2[0]);</span>
+<span class="fc" id="L126">                int hour2 = Integer.parseInt(time2[0]);</span>
+<span class="fc" id="L127">                int minute2 = Integer.parseInt(time2[1]);</span>
+<span class="fc" id="L128">                int second2 = Integer.parseInt(time2[2]);</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">                if (year2 &gt; year) {</span>
+<span class="fc" id="L130">                    bestTime = nodeJ;</span>
+<span class="fc bfc" id="L131" title="All 2 branches covered.">                } else if (year2 == year) {</span>
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">                    if (month2 &gt; month) {</span>
+<span class="nc" id="L133">                        bestTime = nodeJ;</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">                    } else if (month2 == month) {</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">                        if (day2 &gt; day) {</span>
+<span class="nc" id="L136">                            bestTime = nodeJ;</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">                        } else if (day2 == day) {</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">                            if (hour2 &gt; hour) {</span>
+<span class="nc" id="L139">                                bestTime = nodeJ;</span>
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">                            } else if (hour2 == hour) {</span>
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">                                if (minute2 &gt; minute) {</span>
+<span class="nc" id="L142">                                    bestTime = nodeJ;</span>
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">                                } else if (minute2 == minute) {</span>
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">                                    if (second2 &gt; second) {</span>
+<span class="nc" id="L145">                                        bestTime = nodeJ;</span>
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+<span class="fc" id="L152">                }else {bestTime = nodeJ; }</span>
+        }
+<span class="fc" id="L154">        sorted.add(bestTime); //Add bestTime first.</span>
+<span class="fc" id="L155">        unsorted.remove(bestTime); // remove the best out of the list.</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        while (unsorted.size() &gt; 0){</span>
+<span class="fc" id="L157">          findBestTime(unsorted); //find best time with remaining nodes.</span>
+        }
+<span class="fc" id="L159">        return sorted;</span>
+    }
+
+    /**
+     * Adds logging event to DB.
+     *
+     * @param request
+     * @param response
+     * @throws ServletException
+     * @throws IOException
+     */
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+<span class="fc" id="L172">        BufferedReader br = request.getReader();</span>
+<span class="fc" id="L173">        ObjectMapper mapper = new ObjectMapper();</span>
+<span class="fc" id="L174">        JsonNode node = mapper.readTree(br);</span>
+        //Check if event is a valid LogEvent
+<span class="pc bpc" id="L176" title="1 of 2 branches missed.">        if ((node.get(&quot;id&quot;) != null) &amp;&amp;</span>
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">                (node.get(&quot;message&quot;) != null) &amp;&amp;</span>
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">                (node.get(&quot;timestamp&quot;) != null) &amp;&amp;</span>
+<span class="pc bpc" id="L179" title="1 of 2 branches missed.">                (node.get(&quot;thread&quot;) != null) &amp;&amp;</span>
+<span class="fc bfc" id="L180" title="All 2 branches covered.">                (node.get(&quot;logger&quot;) != null) &amp;&amp;</span>
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">                (node.get(&quot;level&quot;) != null)){</span>
+            //Check if a log event with this id already exists
+<span class="pc bfc" id="L183" title="All 2 branches covered.">            for (int i = 0; i &lt; Persistency.DB.size(); i++) {</span>
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">                if(node.get(&quot;id&quot;).equals(Persistency.DB.get(i).get(&quot;id&quot;))){</span>
+<span class="fc" id="L185">                    response.sendError(HttpServletResponse.SC_CONFLICT);</span>
+<span class="fc" id="L186">                    return;</span>
+                }
+            }
+<span class="fc" id="L189">            Persistency.DB.add(node);</span>
+<span class="fc" id="L190">            response.setStatus(HttpServletResponse.SC_CREATED);</span>
+<span class="fc" id="L191">        } else { response.sendError(HttpServletResponse.SC_BAD_REQUEST);}</span>
+<span class="fc" id="L192">    }</span>
+
+    /**
+     * Deletes logging events in DB.
+     *
+     * @param request
+     * @param response
+     * @throws ServletException
+     * @throws IOException
+     */
+    public void doDelete(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+<span class="fc" id="L204">        Persistency.DB.clear();</span>
+<span class="fc" id="L205">        response.setContentType(&quot;application/json&quot;);</span>
+<span class="fc" id="L206">        response.setStatus(HttpServletResponse.SC_OK);</span>
+<span class="fc" id="L207">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
